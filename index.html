@@ -54,13 +54,11 @@ footer{margin-top:20px;text-align:center;color:var(--muted);}
 </aside>
 
 <main>
-<!-- PLAYBACKS -->
 <section id="playbacks" class="view">
   <h2>Playbacks</h2>
   <div id="catalogGrid" class="grid grid-cols-3"></div>
 </section>
 
-<!-- CARRINHO -->
 <section id="cart" class="view hidden">
   <h2>Carrinho</h2>
   <div id="cartItems"></div>
@@ -74,13 +72,11 @@ footer{margin-top:20px;text-align:center;color:var(--muted);}
   <button id="btnCheckout" class="btn-red">Gerar QR Code PIX</button>
 </section>
 
-<!-- DOWNLOADS -->
 <section id="downloads" class="view hidden">
   <h2>Meus Downloads</h2>
   <div id="downloadsList" class="grid grid-cols-3"></div>
 </section>
 
-<!-- ADMIN -->
 <section id="admin" class="view hidden">
   <h2>Admin</h2>
   <div id="adminLoginDiv">
@@ -99,7 +95,6 @@ footer{margin-top:20px;text-align:center;color:var(--muted);}
   </div>
 </section>
 
-<!-- PROMOÇÃO -->
 <section id="promo" class="view hidden">
   <h2>Promoção</h2>
   <p>Exemplo: Leve 5, Pague 4</p>
@@ -207,7 +202,7 @@ document.getElementById('btnCheckout').addEventListener('click',()=>{
   });
 });
 
-// CONFIRM PAYMENT (AGORA NÃO LIBERA MAIS DIRETO)
+// CONFIRM PAYMENT (AGORA APENAS PENDENTE)
 document.getElementById('btnConfirmPayment').addEventListener('click',()=>{
   if(cart.length===0){alert('Carrinho vazio'); return;}
   orders.push({items:[...cart], paid:false}); // fica pendente
@@ -217,8 +212,7 @@ document.getElementById('btnConfirmPayment').addEventListener('click',()=>{
   updateCartCount();
   document.getElementById('checkoutArea').classList.add('hidden');
   alert('Prazo de entrega em até 2 hrs logo após enviar o comprovante!');
-  // redirecionar pro WhatsApp
-  window.location.href="https://wa.me/5599999999999?text=Olá,%20segue%20meu%20comprovante%20de%20pagamento!";
+  window.location.href="https://wa.me/5588994387701?text=Olá,%20segue%20meu%20comprovante%20de%20pagamento!";
 });
 
 // DOWNLOADS
@@ -264,7 +258,7 @@ document.getElementById('btnCreateItem').addEventListener('click',()=>{
   readerCover.readAsDataURL(coverFile);
 });
 
-// ADMIN ORDERS (ADMIN LIBERA MANUALMENTE)
+// ADMIN ORDERS
 function renderOrders(){
   const el=document.getElementById('ordersList');
   el.innerHTML='';
