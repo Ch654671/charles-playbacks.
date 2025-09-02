@@ -68,7 +68,6 @@ footer{margin-top:20px;text-align:center;color:var(--muted);}
   <div id="checkoutArea" class="hidden">
     <h3>PIX</h3>
     <div id="qrcode" class="qrcode"></div>
-    <p>Envie o comprovante para: <b>88994387701</b></p>
     <button id="btnConfirmPayment" class="btn-red">Confirmar Pagamento</button>
   </div>
   <button id="btnClearCart" class="btn-dark">Limpar Carrinho</button>
@@ -159,7 +158,7 @@ function renderCatalog(){
       <img class="cover" src="${i.cover}">
       <b>${i.name}</b>
       <div class="price">R$ ${i.price.toFixed(2)}</div>
-      <audio class="audio-player" controls src="${i.audio}"></audio>
+      <audio class="audio-player" controls src="${i.audio}" data-full="${i.audio}"></audio>
       <button class="btn-red">Adicionar ao Carrinho</button>
     `;
     const audioEl = div.querySelector('audio');
@@ -172,7 +171,6 @@ function renderCatalog(){
     });
     div.querySelector('button').addEventListener('click',()=>{
       cart.push(i); saveLS(); renderCart(); updateCartCount();
-      alert('Item adicionado ao carrinho!');
     });
     grid.appendChild(div);
   });
@@ -209,13 +207,18 @@ document.getElementById('btnCheckout').addEventListener('click',()=>{
   });
 });
 
-// CONFIRM PAYMENT
+// CONFIRM PAYMENT (AGORA NÃO LIBERA MAIS DIRETO)
 document.getElementById('btnConfirmPayment').addEventListener('click',()=>{
   if(cart.length===0){alert('Carrinho vazio'); return;}
-  orders.push({items:[...cart], paid:false}); // não pago até admin aprovar
-  cart=[]; saveLS(); renderCart(); updateCartCount();
+  orders.push({items:[...cart], paid:false}); // fica pendente
+  cart=[];
+  saveLS();
+  renderCart();
+  updateCartCount();
   document.getElementById('checkoutArea').classList.add('hidden');
-  alert('Comprovante enviado! Aguarde aprovação do Admin.');
+  alert('Prazo de entrega em até 2 hrs logo após enviar o comprovante!');
+  // redirecionar pro WhatsApp
+  window.location.href="https://wa.me/5599999999999?text=Olá,%20segue%20meu%20comprovante%20de%20pagamento!";
 });
 
 // DOWNLOADS
@@ -261,14 +264,13 @@ document.getElementById('btnCreateItem').addEventListener('click',()=>{
   readerCover.readAsDataURL(coverFile);
 });
 
-// ADMIN ORDERS
+// ADMIN ORDERS (ADMIN LIBERA MANUALMENTE)
 function renderOrders(){
   const el=document.getElementById('ordersList');
   el.innerHTML='';
-  if(orders.length===0){el.innerHTML='<div class="muted">Nenhum pedido pendente.</div>'; return;}
   orders.forEach((o,idx)=>{
     const div=document.createElement('div');
-    div.innerHTML=`Pedido ${idx+1}: ${o.items.map(i=>i.name).join(', ')} - ${o.paid?'Aprovado':'Pendente'} <button onclick="toggleOrder(${idx})" class="btn-dark">${o.paid?'Bloquear':'Liberar'}</button>`;
+    div.innerHTML=`Pedido ${idx+1}: ${o.items.map(i=>i.name).join(', ')} - ${o.paid?'Liberado':'Pendente'} <button onclick="toggleOrder(${idx})" class="btn-dark">${o.paid?'Bloquear':'Liberar'}</button>`;
     el.appendChild(div);
   });
 }
