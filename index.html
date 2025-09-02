@@ -54,11 +54,13 @@ footer{margin-top:20px;text-align:center;color:var(--muted);}
 </aside>
 
 <main>
+<!-- PLAYBACKS -->
 <section id="playbacks" class="view">
   <h2>Playbacks</h2>
   <div id="catalogGrid" class="grid grid-cols-3"></div>
 </section>
 
+<!-- CARRINHO -->
 <section id="cart" class="view hidden">
   <h2>Carrinho</h2>
   <div id="cartItems"></div>
@@ -66,17 +68,20 @@ footer{margin-top:20px;text-align:center;color:var(--muted);}
   <div id="checkoutArea" class="hidden">
     <h3>PIX</h3>
     <div id="qrcode" class="qrcode"></div>
+    <p>Envie o comprovante para: <b>88994387701</b></p>
     <button id="btnConfirmPayment" class="btn-red">Confirmar Pagamento</button>
   </div>
   <button id="btnClearCart" class="btn-dark">Limpar Carrinho</button>
   <button id="btnCheckout" class="btn-red">Gerar QR Code PIX</button>
 </section>
 
+<!-- DOWNLOADS -->
 <section id="downloads" class="view hidden">
   <h2>Meus Downloads</h2>
   <div id="downloadsList" class="grid grid-cols-3"></div>
 </section>
 
+<!-- ADMIN -->
 <section id="admin" class="view hidden">
   <h2>Admin</h2>
   <div id="adminLoginDiv">
@@ -90,13 +95,12 @@ footer{margin-top:20px;text-align:center;color:var(--muted);}
     <input type="file" id="upCover" accept="image/*"/><br>
     <input type="file" id="upAudio" accept="audio/*"/><br>
     <button id="btnCreateItem" class="btn-red">Cadastrar Playback</button>
-    <h3>Pedidos Pendentes / Downloads</h3>
+    <h3>Pedidos Pendentes</h3>
     <div id="ordersList"></div>
-    <h3>Remover Playback</h3>
-    <div id="playbacksList"></div>
   </div>
 </section>
 
+<!-- PROMOÇÃO -->
 <section id="promo" class="view hidden">
   <h2>Promoção</h2>
   <p>Exemplo: Leve 5, Pague 4</p>
@@ -115,6 +119,7 @@ footer{margin-top:20px;text-align:center;color:var(--muted);}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
+// STORAGE
 let items = JSON.parse(localStorage.getItem('items')||'[]');
 let cart = JSON.parse(localStorage.getItem('cart')||'[]');
 let orders = JSON.parse(localStorage.getItem('orders')||'[]');
@@ -138,12 +143,12 @@ document.querySelectorAll('.nav-btn').forEach(btn=>{
     document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     if(btn.dataset.view=='downloads') renderDownloads();
-    if(btn.dataset.view=='admin'){ renderOrders(); renderPlaybacksAdmin();}
+    if(btn.dataset.view=='admin') renderOrders();
   });
 });
 document.getElementById('btnCart').addEventListener('click',()=>{views.forEach(v=>v.classList.add('hidden'));document.getElementById('cart').classList.remove('hidden');renderCart();});
 
-// PLAYBACKS COM 1 MINUTO DE DEMO
+// PLAYBACKS
 function renderCatalog(){
   const grid=document.getElementById('catalogGrid');
   grid.innerHTML='';
@@ -154,15 +159,20 @@ function renderCatalog(){
       <img class="cover" src="${i.cover}">
       <b>${i.name}</b>
       <div class="price">R$ ${i.price.toFixed(2)}</div>
-      <audio class="audio-player" controls src="${i.audio}" data-full="${i.audio}"></audio>
+      <audio class="audio-player" controls src="${i.audio}"></audio>
       <button class="btn-red">Adicionar ao Carrinho</button>
     `;
     const audioEl = div.querySelector('audio');
     audioEl.addEventListener('timeupdate',()=>{
-      if(audioEl.currentTime>=60){audioEl.pause(); audioEl.currentTime=0; alert('Demo finalizada! Compre para ouvir completo.');}
+      if(audioEl.currentTime>=60){
+        audioEl.pause();
+        audioEl.currentTime=0;
+        alert("Demo finalizada! Compre para ouvir completo.");
+      }
     });
     div.querySelector('button').addEventListener('click',()=>{
       cart.push(i); saveLS(); renderCart(); updateCartCount();
+      alert('Item adicionado ao carrinho!');
     });
     grid.appendChild(div);
   });
@@ -193,27 +203,26 @@ document.getElementById('btnCheckout').addEventListener('click',()=>{
   document.getElementById('checkoutArea').classList.remove('hidden');
   document.getElementById('qrcode').innerHTML='';
   const total=cart.reduce((a,b)=>a+b.price,0);
-  new QRCode(document.getElementById("qrcode"),{text:`PIX Exemplo\nValor: R$ ${total.toFixed(2)}`,width:128,height:128});
+  new QRCode(document.getElementById("qrcode"),{
+    text:`PIX Exemplo\nValor: R$ ${total.toFixed(2)}`,
+    width:128,height:128
+  });
 });
 
-// CONFIRM PAYMENT COM ENVIO DE COMPROVANTE
+// CONFIRM PAYMENT
 document.getElementById('btnConfirmPayment').addEventListener('click',()=>{
   if(cart.length===0){alert('Carrinho vazio'); return;}
-  orders.push({items:[...cart], paid:false, id:Date.now()});
-  saveLS();
-  cart=[];
-  renderCart();
-  updateCartCount();
+  orders.push({items:[...cart], paid:false}); // não pago até admin aprovar
+  cart=[]; saveLS(); renderCart(); updateCartCount();
   document.getElementById('checkoutArea').classList.add('hidden');
-  alert('Pedido registrado! Envie o comprovante para o WhatsApp: 88 99438-7701');
-  window.open(`https://wa.me/5588994387701?text=Olá,%20acabei%20de%20realizar%20o%20pagamento%20e%20gostaria%20de%20enviar%20o%20comprovante.`, '_blank');
+  alert('Comprovante enviado! Aguarde aprovação do Admin.');
 });
 
 // DOWNLOADS
 function renderDownloads(){
   const el=document.getElementById('downloadsList');
   el.innerHTML='';
-  if(downloads.length===0){el.innerHTML='<div class="muted">Nenhum playback liberado ainda.</div>'; return;}
+  if(downloads.length===0){el.innerHTML='<div class="muted">Nenhum playback comprado ainda.</div>'; return;}
   downloads.forEach(it=>{
     const a=document.createElement('a');
     a.href=it.audio;a.download='';a.innerText=it.name;a.className='download-link';
@@ -224,7 +233,7 @@ function renderDownloads(){
 // ADMIN LOGIN
 document.getElementById('btnLoginAdmin').addEventListener('click',()=>{
   const pass=document.getElementById('adminPass').value;
-  if(pass==='C626G7@#'){document.getElementById('adminPanel').classList.remove('hidden');document.getElementById('adminLoginDiv').classList.add('hidden'); renderOrders(); renderPlaybacksAdmin();}
+  if(pass==='C626G7@#'){document.getElementById('adminPanel').classList.remove('hidden');document.getElementById('adminLoginDiv').classList.add('hidden'); renderOrders();}
   else{alert('Senha incorreta!');}
 });
 
@@ -242,7 +251,6 @@ document.getElementById('btnCreateItem').addEventListener('click',()=>{
       items.push({name,price,cover:e.target.result,audio:ev.target.result});
       saveLS(); renderCatalog(); alert('Playback cadastrado!');
       document.getElementById('upName').value=''; document.getElementById('upPrice').value=''; document.getElementById('upCover').value=''; document.getElementById('upAudio').value='';
-      renderPlaybacksAdmin();
       views.forEach(v=>v.classList.add('hidden'));
       document.getElementById('playbacks').classList.remove('hidden');
       document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
@@ -257,9 +265,10 @@ document.getElementById('btnCreateItem').addEventListener('click',()=>{
 function renderOrders(){
   const el=document.getElementById('ordersList');
   el.innerHTML='';
+  if(orders.length===0){el.innerHTML='<div class="muted">Nenhum pedido pendente.</div>'; return;}
   orders.forEach((o,idx)=>{
     const div=document.createElement('div');
-    div.innerHTML=`Pedido ${idx+1}: ${o.items.map(i=>i.name).join(', ')} - ${o.paid?'Liberado':'Pendente'} <button onclick="toggleOrder(${idx})" class="btn-dark">${o.paid?'Bloquear':'Liberar'}</button>`;
+    div.innerHTML=`Pedido ${idx+1}: ${o.items.map(i=>i.name).join(', ')} - ${o.paid?'Aprovado':'Pendente'} <button onclick="toggleOrder(${idx})" class="btn-dark">${o.paid?'Bloquear':'Liberar'}</button>`;
     el.appendChild(div);
   });
 }
@@ -270,12 +279,20 @@ function toggleOrder(idx){
   else orders[idx].items.forEach(i=>{downloads=downloads.filter(d=>d.name!==i.name)});
   saveLS();
   renderOrders();
-  renderDownloads();
 }
 
-// ADMIN REMOVER PLAYBACK
-function renderPlaybacksAdmin(){
-  const el = document.getElementById('playbacksList');
-  el.innerHTML='';
-  items.forEach((i,idx)=>{
-    const div = document.createElement('
+// PROMOÇÃO
+document.getElementById('btnApplyPromo').addEventListener('click',()=>{
+  promo.min=parseInt(document.getElementById('promoMin').value);
+  promo.pay=parseInt(document.getElementById('promoPay').value);
+  alert('Promoção atualizada!');
+  renderCart();
+});
+
+// INITIALIZE
+renderCatalog();
+updateCartCount();
+</script>
+
+</body>
+</html>
