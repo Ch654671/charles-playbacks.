@@ -90,8 +90,10 @@ footer{margin-top:20px;text-align:center;color:var(--muted);}
     <input type="file" id="upCover" accept="image/*"/><br>
     <input type="file" id="upAudio" accept="audio/*"/><br>
     <button id="btnCreateItem" class="btn-red">Cadastrar Playback</button>
-    <h3>Pedidos Pendentes</h3>
+    <h3>Pedidos Pendentes / Downloads</h3>
     <div id="ordersList"></div>
+    <h3>Remover Playback</h3>
+    <div id="playbacksList"></div>
   </div>
 </section>
 
@@ -136,7 +138,7 @@ document.querySelectorAll('.nav-btn').forEach(btn=>{
     document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     if(btn.dataset.view=='downloads') renderDownloads();
-    if(btn.dataset.view=='admin') renderOrders();
+    if(btn.dataset.view=='admin'){ renderOrders(); renderPlaybacksAdmin();}
   });
 });
 document.getElementById('btnCart').addEventListener('click',()=>{views.forEach(v=>v.classList.add('hidden'));document.getElementById('cart').classList.remove('hidden');renderCart();});
@@ -222,7 +224,7 @@ function renderDownloads(){
 // ADMIN LOGIN
 document.getElementById('btnLoginAdmin').addEventListener('click',()=>{
   const pass=document.getElementById('adminPass').value;
-  if(pass==='C626G7@#'){document.getElementById('adminPanel').classList.remove('hidden');document.getElementById('adminLoginDiv').classList.add('hidden'); renderOrders();}
+  if(pass==='C626G7@#'){document.getElementById('adminPanel').classList.remove('hidden');document.getElementById('adminLoginDiv').classList.add('hidden'); renderOrders(); renderPlaybacksAdmin();}
   else{alert('Senha incorreta!');}
 });
 
@@ -240,6 +242,7 @@ document.getElementById('btnCreateItem').addEventListener('click',()=>{
       items.push({name,price,cover:e.target.result,audio:ev.target.result});
       saveLS(); renderCatalog(); alert('Playback cadastrado!');
       document.getElementById('upName').value=''; document.getElementById('upPrice').value=''; document.getElementById('upCover').value=''; document.getElementById('upAudio').value='';
+      renderPlaybacksAdmin();
       views.forEach(v=>v.classList.add('hidden'));
       document.getElementById('playbacks').classList.remove('hidden');
       document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
@@ -270,17 +273,10 @@ function toggleOrder(idx){
   renderDownloads();
 }
 
-// PROMOÇÃO
-document.getElementById('btnApplyPromo').addEventListener('click',()=>{
-  promo.min=parseInt(document.getElementById('promoMin').value);
-  promo.pay=parseInt(document.getElementById('promoPay').value);
-  alert('Promoção atualizada!');
-  renderCart();
-});
+// ADMIN REMOVER PLAYBACK
+function renderPlaybacksAdmin(){
+  const el = document.getElementById('playbacksList');
+  el.innerHTML='';
+  items.forEach((i,idx)=>{
+    const div = document.createElement('
 
-// INITIALIZE
-renderCatalog();
-updateCartCount();
-</script>
-</body>
-</html>
