@@ -113,9 +113,18 @@ footer{margin-top:20px;text-align:center;color:var(--muted);}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-let cart=[]; 
+let items = JSON.parse(localStorage.getItem('items')||'[]');
+let cart = JSON.parse(localStorage.getItem('cart')||'[]');
+let orders = JSON.parse(localStorage.getItem('orders')||'[]');
+let downloads = JSON.parse(localStorage.getItem('downloads')||'[]');
 let promo={min:5,pay:4};
-let items=[];
+
+function saveLS(){
+  localStorage.setItem('items',JSON.stringify(items));
+  localStorage.setItem('cart',JSON.stringify(cart));
+  localStorage.setItem('orders',JSON.stringify(orders));
+  localStorage.setItem('downloads',JSON.stringify(downloads));
+}
 
 // NAVIGATION
 const views=document.querySelectorAll('.view');
@@ -132,18 +141,11 @@ document.querySelectorAll('.nav-btn').forEach(btn=>{
 });
 document.getElementById('btnCart').addEventListener('click',()=>{views.forEach(v=>v.classList.add('hidden'));document.getElementById('cart').classList.remove('hidden');renderCart();});
 
-// FETCH PLAYBACKS DO SERVIDOR
-async function fetchItems(){
-  const res = await fetch('/api/items');
-  items = await res.json();
-  renderCatalog();
-}
-
-// RENDER PLAYBACKS COM 1 MINUTO DE DEMO
+// PLAYBACKS COM 1 MINUTO DE DEMO
 function renderCatalog(){
   const grid=document.getElementById('catalogGrid');
   grid.innerHTML='';
-  items.forEach(i=>{
+  items.forEach((i,idx)=>{
     const div=document.createElement('div');
     div.className='item';
     div.innerHTML=`
@@ -153,11 +155,13 @@ function renderCatalog(){
       <audio class="audio-player" controls src="${i.audio}" data-full="${i.audio}"></audio>
       <button class="btn-red">Adicionar ao Carrinho</button>
     `;
-    const audioEl=div.querySelector('audio');
+    const audioEl = div.querySelector('audio');
     audioEl.addEventListener('timeupdate',()=>{
       if(audioEl.currentTime>=60){audioEl.pause(); audioEl.currentTime=0; alert('Demo finalizada! Compre para ouvir completo.');}
     });
-    div.querySelector('button').addEventListener('click',()=>{cart.push(i); renderCart(); updateCartCount();});
+    div.querySelector('button').addEventListener('click',()=>{
+      cart.push(i); saveLS(); renderCart(); updateCartCount();
+    });
     grid.appendChild(div);
   });
 }
@@ -166,7 +170,7 @@ function renderCatalog(){
 function renderCart(){
   const el=document.getElementById('cartItems');
   el.innerHTML='';
-  if(cart.length===0){el.innerHTML='<div class="muted">Carrinho vazio</div>';updateCartCount(); return;}
+  if(cart.length===0){el.innerHTML='<div class="muted">Carrinho vazio</div>';updateCartCount();return;}
   let total=0;
   cart.forEach((i,idx)=>{
     const div=document.createElement('div');
@@ -177,8 +181,8 @@ function renderCart(){
   if(cart.length>=promo.min){total-=cart[0].price*(cart.length - promo.pay);}
   document.getElementById('cartTotal').innerText=total.toFixed(2);
 }
-function removeCart(idx){cart.splice(idx,1);renderCart();updateCartCount();}
-document.getElementById('btnClearCart').addEventListener('click',()=>{cart=[];renderCart();updateCartCount();});
+function removeCart(idx){cart.splice(idx,1);saveLS();renderCart();updateCartCount();}
+document.getElementById('btnClearCart').addEventListener('click',()=>{cart=[];saveLS();renderCart();updateCartCount();});
 function updateCartCount(){document.getElementById('cartCount').innerText=cart.length;}
 
 // CHECKOUT
@@ -190,20 +194,21 @@ document.getElementById('btnCheckout').addEventListener('click',()=>{
   new QRCode(document.getElementById("qrcode"),{text:`PIX Exemplo\nValor: R$ ${total.toFixed(2)}`,width:128,height:128});
 });
 
-// CONFIRM PAYMENT
-document.getElementById('btnConfirmPayment').addEventListener('click',async ()=>{
+// CONFIRM PAYMENT COM ENVIO DE COMPROVANTE
+document.getElementById('btnConfirmPayment').addEventListener('click',()=>{
   if(cart.length===0){alert('Carrinho vazio'); return;}
-  // envia pedido ao servidor como pendente
-  await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:cart})});
+  orders.push({items:[...cart], paid:false, id:Date.now()});
+  saveLS();
+  cart=[];
+  renderCart();
+  updateCartCount();
+  document.getElementById('checkoutArea').classList.add('hidden');
   alert('Pedido registrado! Envie o comprovante para o WhatsApp: 88 99438-7701');
   window.open(`https://wa.me/5588994387701?text=Olá,%20acabei%20de%20realizar%20o%20pagamento%20e%20gostaria%20de%20enviar%20o%20comprovante.`, '_blank');
-  cart=[]; renderCart(); updateCartCount(); document.getElementById('checkoutArea').classList.add('hidden');
 });
 
 // DOWNLOADS
-async function renderDownloads(){
-  const res=await fetch('/api/downloads');
-  const downloads=await res.json();
+function renderDownloads(){
   const el=document.getElementById('downloadsList');
   el.innerHTML='';
   if(downloads.length===0){el.innerHTML='<div class="muted">Nenhum playback liberado ainda.</div>'; return;}
@@ -222,36 +227,47 @@ document.getElementById('btnLoginAdmin').addEventListener('click',()=>{
 });
 
 // ADMIN UPLOAD
-document.getElementById('btnCreateItem').addEventListener('click',async ()=>{
+document.getElementById('btnCreateItem').addEventListener('click',()=>{
   const name=document.getElementById('upName').value;
   const price=parseFloat(document.getElementById('upPrice').value);
   const coverFile=document.getElementById('upCover').files[0];
   const audioFile=document.getElementById('upAudio').files[0];
   if(!name||!price||!coverFile||!audioFile){alert('Preencha todos os campos!'); return;}
-  const formData=new FormData();
-  formData.append('name',name); formData.append('price',price); formData.append('cover',coverFile); formData.append('audio',audioFile);
-  await fetch('/api/admin/upload',{method:'POST',body:formData});
-  alert('Playback cadastrado!');
-  document.getElementById('upName').value=''; document.getElementById('upPrice').value=''; document.getElementById('upCover').value=''; document.getElementById('upAudio').value='';
-  fetchItems();
+  const readerCover=new FileReader();
+  const readerAudio=new FileReader();
+  readerCover.onload=e=>{
+    readerAudio.onload=ev=>{
+      items.push({name,price,cover:e.target.result,audio:ev.target.result});
+      saveLS(); renderCatalog(); alert('Playback cadastrado!');
+      document.getElementById('upName').value=''; document.getElementById('upPrice').value=''; document.getElementById('upCover').value=''; document.getElementById('upAudio').value='';
+      views.forEach(v=>v.classList.add('hidden'));
+      document.getElementById('playbacks').classList.remove('hidden');
+      document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelector('[data-view="playbacks"]').classList.add('active');
+    };
+    readerAudio.readAsDataURL(audioFile);
+  };
+  readerCover.readAsDataURL(coverFile);
 });
 
 // ADMIN ORDERS
-async function renderOrders(){
-  const res=await fetch('/api/orders');
-  const orders=await res.json();
+function renderOrders(){
   const el=document.getElementById('ordersList');
   el.innerHTML='';
   orders.forEach((o,idx)=>{
     const div=document.createElement('div');
-    div.innerHTML=`Pedido ${idx+1}: ${o.items.map(i=>i.name).join(', ')} - ${o.paid?'Liberado':'Pendente'} <button onclick="toggleOrder(${o.id})" class="btn-dark">${o.paid?'Bloquear':'Liberar'}</button>`;
+    div.innerHTML=`Pedido ${idx+1}: ${o.items.map(i=>i.name).join(', ')} - ${o.paid?'Liberado':'Pendente'} <button onclick="toggleOrder(${idx})" class="btn-dark">${o.paid?'Bloquear':'Liberar'}</button>`;
     el.appendChild(div);
   });
 }
 
-async function toggleOrder(orderId){
-  await fetch('/api/admin/toggleOrder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:orderId})});
+function toggleOrder(idx){
+  orders[idx].paid=!orders[idx].paid;
+  if(orders[idx].paid) downloads.push(...orders[idx].items);
+  else orders[idx].items.forEach(i=>{downloads=downloads.filter(d=>d.name!==i.name)});
+  saveLS();
   renderOrders();
+  renderDownloads();
 }
 
 // PROMOÇÃO
@@ -263,9 +279,8 @@ document.getElementById('btnApplyPromo').addEventListener('click',()=>{
 });
 
 // INITIALIZE
-fetchItems();
+renderCatalog();
 updateCartCount();
 </script>
-
 </body>
 </html>
