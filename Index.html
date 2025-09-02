@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Charles Playbacks</title>
+<style>
+:root{--bg:#000;--card:#111214;--accent:#e11d2f;--accent-grad:linear-gradient(135deg,#e11d2f,#ff6f61);--muted:#9aa0a6;}
+body{margin:0;background:var(--bg);color:#fff;font-family:sans-serif;display:flex;flex-direction:row;}
+header{position:fixed;top:0;left:0;right:0;display:flex;justify-content:flex-start;padding:12px 16px;background:#081018;align-items:center;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.5);}
+.logo{display:flex;gap:12px;align-items:center;transition:transform .3s;}
+.logo:hover{transform:scale(1.05);}
+.logo .mark{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;background:var(--accent-grad);color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.5);}
+aside{width:200px;background:var(--card);padding:12px;position:fixed;top:80px;bottom:0;overflow-y:auto;}
+.nav-btn{display:block;padding:10px;border-radius:10px;color:#ddd;text-decoration:none;margin-bottom:8px;border:1px solid rgba(255,255,255,0.03);transition:0.2s;}
+.nav-btn:hover{background:var(--accent);color:#fff;}
+.nav-btn.active{background:var(--accent);color:#fff;}
+main{margin-left:220px;padding:100px 12px 12px 12px;flex:1;}
+button{cursor:pointer;border:0;padding:8px 12px;border-radius:8px;transition:0.2s;}
+button:hover{opacity:0.85;}
+.btn-red{background:var(--accent);color:#fff;}
+.btn-dark{background:#0b0b0b;color:#ddd;border:1px solid #222;}
+.hidden{display:none;}
+.grid{display:grid;gap:12px;}
+.grid-cols-3{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));justify-items:center;}
+.item{background:#111;padding:10px;border-radius:8px;transition:0.2s;width:100%;}
+.item:hover{transform:scale(1.02);}
+.cover{width:100%;height:160px;object-fit:cover;border-radius:6px;}
+.muted{color:var(--muted);font-size:13px;}
+.price{font-weight:800;color:var(--accent);font-size:16px;}
+footer{margin-top:20px;text-align:center;color:var(--muted);}
+.audio-player{width:100%;margin-top:6px;margin-bottom:6px;}
+.order-liberado{color:lime;font-weight:bold;margin-left:8px;}
+@media(max-width:768px){aside{width:60px;padding:8px;}main{margin-left:70px;padding-top:100px;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="mark">CP</div>
+    <div>Charles Playbacks</div>
+  </div>
+  <div id="loginSection" style="margin-left:auto;">
+    <input type="text" id="loginUser" placeholder="Usuário">
+    <input type="password" id="loginPass" placeholder="Senha">
+    <button id="btnDoLogin" class="btn-red">Entrar</button>
+  </div>
+  <div id="userProfile" style="display:none;margin-left:16px;">
+    Olá, <span id="currentUserName"></span>!
+    <button id="btnLogout" class="btn-dark" style="margin-left:8px;">Sair</button>
+  </div>
+</header>
+
+<aside>
+  <a href="#" class="nav-btn active" data-view="playbacks">Playbacks</a>
+  <a href="#" class="nav-btn" data-view="cart">Carrinho</a>
+  <a href="#" class="nav-btn" data-view="downloads">Meus Downloads</a>
+  <a href="#" class="nav-btn" data-view="admin">Admin</a>
+  <a href="#" class="nav-btn" data-view="promo">Promoção</a>
+</aside>
+
+<main>
+  <section id="playbacks" class="view">
+    <h2>Playbacks</h2>
+    <div id="catalogGrid" class="grid grid-cols-3"></div>
+  </section>
+
+  <section id="cart" class="view hidden">
+    <h2>Carrinho</h2>
+    <div id="cartItems"></div>
+    <div>Total: R$ <span id="cartTotal">0.00</span></div>
+    <div id="checkoutArea" class="hidden">
+      <h3>PIX</h3>
+      <div id="qrcode"></div>
+      <button id="btnConfirmPayment" class="btn-red">Confirmar Pagamento</button>
+    </div>
+    <button id="btnClearCart" class="btn-dark">Limpar Carrinho</button>
+    <button id="btnCheckout" class="btn-red">Gerar QR Code PIX</button>
+    <button id="btnPaid" class="btn-dark">Já paguei</button>
+  </section>
+
+  <section id="downloads" class="view hidden">
+    <h2>Meus Downloads</h2>
+    <div id="downloadsList" class="grid grid-cols-3"></div>
+  </section>
+
+  <section id="admin" class="view hidden">
+    <h2>Admin</h2>
+    <div id="adminLoginDiv">
+      <input type="password" id="adminPass" placeholder="Senha Admin"/>
+      <button id="btnLoginAdmin" class="btn-red">Entrar</button>
+    </div>
+    <div id="adminPanel" class="hidden">
+      <h3>Cadastrar Playback</h3>
+      <input type="text" id="upName" placeholder="Nome do playback"/><br>
+      <input type="number" id="upPrice" placeholder="Preço R$" step="0.01"/><br>
+      <input type="file" id="upCover" accept="image/*"/><br>
+      <input type="file" id="upAudio" accept="audio/*"/><br>
+      <button id="btnCreateItem" class="btn-red">Cadastrar Playback</button>
+      <h3>Playbacks Cadastrados</h3>
+      <div id="adminItemsList"></div>
+      <h3>Pedidos Pendentes</h3>
+      <div id="ordersList"></div>
+    </div>
+  </section>
+
+  <section id="promo" class="view hidden">
+    <h2>Promoção</h2>
+    <p>Exemplo: Leve 5, Pague 4</p>
+    <div>
+      <label>Qtd mínima:</label>
+      <input type="number" id="promoMin" value="5"/>
+      <label>Qtd paga:</label>
+      <input type="number" id="promoPay" value="4"/>
+      <button id="btnApplyPromo" class="btn-red">Aplicar Promoção</button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  &copy; 2025 Charles — Playbacks
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// STORAGE
+let items = JSON.parse(localStorage.getItem('items')||'[]');
+let cart = JSON.parse(localStorage.getItem('cart')||'[]');
+let orders = JSON.parse(localStorage.getItem('orders')||'[]');
+let downloads = JSON.parse(localStorage.getItem('downloads')||'[]');
+let user = JSON.parse(localStorage.getItem('user')||'null');
+let currentUser = localStorage.getItem('currentUser') || null;
+
+// Função para salvar localStorage
+function saveLS(){
+  localStorage.setItem('items',JSON.stringify(items));
+  localStorage.setItem('cart',JSON.stringify(cart));
+  localStorage.setItem('orders',JSON.stringify(orders));
+  localStorage.setItem('downloads',JSON.stringify(downloads));
+  localStorage.setItem('user',JSON.stringify(user));
+}
+
+// NAVIGATION
+const views=document.querySelectorAll('.view');
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    e.preventDefault();
+    views.forEach(v=>v.classList.add('hidden'));
+    document.getElementById(btn.dataset.view).classList.remove('hidden');
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    if(btn.dataset.view=='downloads') renderDownloads();
+    if(btn.dataset.view=='admin') { renderOrders(); renderAdminItems(); }
+  });
+});
+
+// RENDER PLAYBACKS
+function renderCatalog(){
+  const grid=document.getElementById('catalogGrid');
+  grid.innerHTML='';
+  items.forEach((i,idx)=>{
+    const div=document.createElement('div');
+    div.className='item';
+    div.innerHTML=`<img class="cover" src="${i.cover}">
+                   <b>${i.name}</b>
+                   <div class="price">R$ ${i.price.toFixed(2)}</div>
+                   <audio class="audio-player" controls src="${i.audio}"></audio>
+                   <button class="btn-red">Comprar Agora</button>`;
+    const audioEl = div.querySelector('audio');
+    audioEl.setAttribute('controlsList','nodownload');
+    audioEl.addEventListener('timeupdate',()=>{ if(audioEl.currentTime>=60){audioEl.pause();audioEl.currentTime=0;alert("Demo finalizada! Compre para ouvir completo.");}});
+    div.querySelector('button').addEventListener('click',()=>{
+      if(!currentUser){ alert("Faça login antes de comprar!"); return; }
+      cart.push(i);
+      saveLS();
+      renderCart();
+      alert(`${i.name} adicionado ao carrinho!`);
+    });
+    grid.appendChild(div);
+  });
+}
+
+// CART FUNCTIONS
+function renderCart(){
+  const el=document.getElementById('cartItems');
+  el.innerHTML='';
+  if(cart.length===0){ el.innerHTML='<div class="muted">Carrinho vazio</div>'; return; }
+  let total=0;
+  cart.forEach((i,idx)=>{
+    const div=document.createElement('div');
+    div.innerHTML=`${i.name} - R$ ${i.price.toFixed(2)} <button onclick="removeCart(${idx})" class="btn-dark">Remover</button>`;
+    el.appendChild(div);
+    total+=i.price;
+  });
+  document.getElementById('cartTotal').innerText=total.toFixed(2);
+}
+function removeCart(idx){ cart.splice(idx,1); saveLS(); renderCart(); }
+
+// CHECKOUT
+document.getElementById('btnCheckout').addEventListener('click',()=>{
+  if(cart.length===0){ alert('Carrinho vazio!'); return; }
+  document.getElementById('checkoutArea').classList.remove('hidden');
+  document.getElementById('qrcode').innerHTML='';
+  const total=cart.reduce((a,b)=>a+b.price,0);
+  new QRCode(document.getElementById("qrcode"),{ text:`00020126330014BR.GOV.BCB.PIX0111588994387701520400005303986540510.00`, width:128,height:128 });
+});
+
+// CONFIRM PAYMENT
+document.getElementById('btnConfirmPayment').addEventListener('click',()=>{
+  if(cart.length===0){alert('Carrinho vazio');return;}
+  window.open("https://wa.me/5588994387701","_blank");
+  orders.push({user:currentUser,items:[...cart],paid:false});
+  cart=[];
+  saveLS();
+  renderCart();
+  document.getElementById('checkoutArea').classList.add('hidden');
+});
+
+// DOWNLOADS
+function renderDownloads(){
+  const el=document.getElementById('downloadsList');
+  el.innerHTML='';
+  if(downloads.length===0){el.innerHTML='<div class="muted">Nenhum playback liberado ainda.</div>'; return;}
+  downloads.forEach(it=>{
+    if(it.user===currentUser){
+      const a=document.createElement('a');
+      a.href=it.audio;
+      a.download='';
+      a.innerText=it.name;
+      el.appendChild(a);
+    }
+  });
+}
+
+// ADMIN LOGIN
+document.getElementById('btnLoginAdmin').addEventListener('click',()=>{
+  const pass=document.getElementById('adminPass').value;
+  if(pass==='C626G7@#'){
+    document.getElementById('adminPanel').classList.remove('hidden');
+    document.getElementById('adminLoginDiv').classList.add('hidden');
+    renderOrders();
+    renderAdminItems();
+  } else { alert('Senha incorreta!'); }
+});
+
+// ADMIN UPLOAD CORRIGIDO
+document.getElementById('btnCreateItem').addEventListener('click',()=>{
+  const name = document.getElementById('upName').value.trim();
+  const price = parseFloat(document.getElementById('upPrice').value);
+  const coverFile = document.getElementById('upCover').files[0];
+  const audioFile = document.getElementById('upAudio').files[0];
+
+  if(!name || !price || !coverFile || !audioFile){
+    alert('Preencha todos os campos!');
+    return;
+  }
+
+  const readerCover = new FileReader();
+  const readerAudio = new FileReader();
+
+  readerCover.onload = e => {
+    const coverData = e.target.result;
+
+    readerAudio.onload = ev => {
+      const audioData = ev.target.result;
+
+      items.push({ name, price, cover: coverData, audio: audioData });
+      saveLS();
+      renderCatalog();
+      renderAdminItems();
+
+      document.getElementById('upName').value = '';
+      document.getElementById('upPrice').value = '';
+      document.getElementById('upCover').value = '';
+      document.getElementById('upAudio').value = '';
+
+      alert('Playback cadastrado com sucesso!');
+    };
+
+    readerAudio.readAsDataURL(audioFile);
+  };
+
+  readerCover.readAsDataURL(coverFile);
+});
+
+// ADMIN ITEMS RENDER E REMOVER
+function renderAdminItems(){
+  const el=document.getElementById('adminItemsList');
+  el.innerHTML='';
+  items.forEach((i,idx)=>{
+    const div=document.createElement('div');
+    div.innerHTML=`${i.name} - R$ ${i.price.toFixed(2)} <button onclick="removeItem(${idx})" class="btn-dark">Remover</button>`;
+    el.appendChild(div);
+  });
+}
+function removeItem(idx){
+  if(confirm(`Deseja remover "${items[idx].name}"?`)){
+    items.splice(idx,1);
+    saveLS();
+    renderCatalog();
+    renderAdminItems();
+  }
+}
+
+// ADMIN ORDERS
+function renderOrders(){
+  const el=document.getElementById('ordersList');
+  el.innerHTML='';
+  orders.forEach((o,idx)=>{
+    const status = o.paid ? 'Pago ✅' : 'Pendente';
+    const div=document.createElement('div');
+    div.innerHTML=`Pedido ${idx+1} - Usuário: ${o.user||'Desconhecido'} - ${o.items.map(i=>i.name).join(', ')} - ${status} 
+    <button onclick="toggleOrder(${idx})" class="btn-dark">${o.paid?'Bloquear':'Liberar'}</button>`;
+    el.appendChild(div);
+  });
+}
+function toggleOrder(idx){
+  orders[idx].paid=!orders[idx].paid;
+  if(orders[idx].paid){
+    orders[idx].items.forEach(item=>{
+      downloads.push({...item, user:orders[idx].user});
+    });
+  } else {
+    orders[idx].items.forEach(i=>{
+      downloads = downloads.filter(d=>!(d.name===i.name && d.user===orders[idx].user));
+    });
+  }
+  saveLS();
+  renderOrders();
+}
+
+// LOGIN AUTOMÁTICO E PERFIL
+document.getElementById('btnDoLogin').addEventListener('click',()=>{
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value.trim();
+  if(!u||!p){ alert("Preencha todos os campos!"); return; }
+  user={username:u};
+  currentUser=u;
+  localStorage.setItem('currentUser', u);
+  saveLS();
+  document.getElementById('loginSection').style.display='none';
+  document.getElementById('userProfile').style.display='flex';
+  document.getElementById('currentUserName').innerText=u;
+  alert("Login efetuado e perfil criado!");
+});
+
+document.getElementById('btnLogout').addEventListener('click',()=>{
+  user=null;
+  currentUser=null;
+  localStorage.removeItem('currentUser');
+  document.getElementById('userProfile').style.display='none';
+  document.getElementById('loginSection').style.display='flex';
+});
+
+// Inicializar
+renderCatalog();
+</script>
+
+</body>
+</html>
