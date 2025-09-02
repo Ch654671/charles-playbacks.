@@ -158,9 +158,18 @@ function renderCatalog(){
       <img class="cover" src="${i.cover}">
       <b>${i.name}</b>
       <div class="price">R$ ${i.price.toFixed(2)}</div>
-      <audio class="audio-player" controls src="${i.audio}"></audio>
+      <audio class="audio-player" controls src="${i.audio}" data-full="${i.audio}"></audio>
       <button class="btn-red">Adicionar ao Carrinho</button>
     `;
+    // limitar a demo em 60 segundos
+    const audioEl = div.querySelector('audio');
+    audioEl.addEventListener('timeupdate',()=>{
+      if(audioEl.currentTime>=60){
+        audioEl.pause();
+        audioEl.currentTime=0;
+        alert("Demo finalizada! Compre para ouvir completo.");
+      }
+    });
     div.querySelector('button').addEventListener('click',()=>{
       cart.push(i); saveLS(); renderCart(); updateCartCount();
     });
@@ -180,7 +189,6 @@ function renderCart(){
     el.appendChild(div);
     total+=i.price;
   });
-  // aplicar promoção
   if(cart.length>=promo.min){total-=cart[0].price*(cart.length - promo.pay);}
   document.getElementById('cartTotal').innerText=total.toFixed(2);
 }
@@ -232,36 +240,25 @@ document.getElementById('btnLoginAdmin').addEventListener('click',()=>{
   else{alert('Senha incorreta!');}
 });
 
-// ADMIN UPLOAD (corrigido + muda para Playbacks ao cadastrar)
+// ADMIN UPLOAD
 document.getElementById('btnCreateItem').addEventListener('click',()=>{
   const name=document.getElementById('upName').value;
   const price=parseFloat(document.getElementById('upPrice').value);
   const coverFile=document.getElementById('upCover').files[0];
   const audioFile=document.getElementById('upAudio').files[0];
   if(!name||!price||!coverFile||!audioFile){alert('Preencha todos os campos!'); return;}
-
   const readerCover=new FileReader();
+  const readerAudio=new FileReader();
   readerCover.onload=e=>{
-    const coverData=e.target.result;
-    const readerAudio=new FileReader();
     readerAudio.onload=ev=>{
-      const audioData=ev.target.result;
-      items.push({name,price,cover:coverData,audio:audioData});
-      saveLS();
-      renderCatalog();
-      alert('Playback cadastrado!');
-      document.getElementById('upName').value='';
-      document.getElementById('upPrice').value='';
-      document.getElementById('upCover').value='';
-      document.getElementById('upAudio').value='';
-
-      // **Aqui:** ao cadastrar, ir direto para a aba Playbacks
+      items.push({name,price,cover:e.target.result,audio:ev.target.result});
+      saveLS(); renderCatalog(); alert('Playback cadastrado!');
+      document.getElementById('upName').value=''; document.getElementById('upPrice').value=''; document.getElementById('upCover').value=''; document.getElementById('upAudio').value='';
+      // mudar para seção Playbacks automaticamente
       views.forEach(v=>v.classList.add('hidden'));
-      const playSection = document.getElementById('playbacks');
-      if(playSection) playSection.classList.remove('hidden');
+      document.getElementById('playbacks').classList.remove('hidden');
       document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-      const playBtn = document.querySelector('.nav-btn[data-view="playbacks"]');
-      if(playBtn) playBtn.classList.add('active');
+      document.querySelector('[data-view="playbacks"]').classList.add('active');
     };
     readerAudio.readAsDataURL(audioFile);
   };
