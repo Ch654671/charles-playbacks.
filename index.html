@@ -140,7 +140,11 @@ document.querySelectorAll('.nav-btn').forEach(btn=>{
     if(btn.dataset.view=='admin') renderOrders();
   });
 });
-document.getElementById('btnCart').addEventListener('click',()=>{views.forEach(v=>v.classList.add('hidden'));document.getElementById('cart').classList.remove('hidden');renderCart();});
+document.getElementById('btnCart').addEventListener('click',()=>{
+  views.forEach(v=>v.classList.add('hidden'));
+  document.getElementById('cart').classList.remove('hidden');
+  renderCart();
+});
 
 // PLAYBACKS
 function renderCatalog(){
@@ -165,7 +169,11 @@ function renderCatalog(){
       }
     });
     div.querySelector('button').addEventListener('click',()=>{
-      cart.push(i); saveLS(); renderCart(); updateCartCount();
+      cart.push(i); 
+      saveLS(); 
+      renderCart(); 
+      updateCartCount();
+      alert(`${i.name} adicionado ao carrinho! Total de items: ${cart.length}`);
     });
     grid.appendChild(div);
   });
