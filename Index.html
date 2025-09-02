@@ -169,7 +169,6 @@ function renderCatalog(){
                    <button class="btn-red">Comprar Agora</button>`;
     const audioEl = div.querySelector('audio');
     audioEl.setAttribute('controlsList','nodownload');
-    audioEl.addEventListener('timeupdate',()=>{ if(audioEl.currentTime>=60){audioEl.pause();audioEl.currentTime=0;alert("Demo finalizada! Compre para ouvir completo.");}});
     div.querySelector('button').addEventListener('click',()=>{
       if(!currentUser){ alert("Faça login antes de comprar!"); return; }
       cart.push(i);
@@ -244,45 +243,41 @@ document.getElementById('btnLoginAdmin').addEventListener('click',()=>{
   } else { alert('Senha incorreta!'); }
 });
 
-// ADMIN UPLOAD CORRIGIDO
-document.getElementById('btnCreateItem').addEventListener('click',()=>{
-  const name = document.getElementById('upName').value.trim();
-  const price = parseFloat(document.getElementById('upPrice').value);
-  const coverFile = document.getElementById('upCover').files[0];
-  const audioFile = document.getElementById('upAudio').files[0];
+// CORREÇÃO CADASTRO DE PLAYBACKS
+document.getElementById('btnCreateItem').addEventListener('click', async ()=>{
+  const name=document.getElementById('upName').value.trim();
+  const price=parseFloat(document.getElementById('upPrice').value);
+  const coverFile=document.getElementById('upCover').files[0];
+  const audioFile=document.getElementById('upAudio').files[0];
 
-  if(!name || !price || !coverFile || !audioFile){
-    alert('Preencha todos os campos!');
-    return;
-  }
+  if(!name||!price||!coverFile||!audioFile){ alert('Preencha todos os campos!'); return; }
 
-  const readerCover = new FileReader();
-  const readerAudio = new FileReader();
+  // Ler os arquivos como base64
+  const coverData=await fileToBase64(coverFile);
+  const audioData=await fileToBase64(audioFile);
 
-  readerCover.onload = e => {
-    const coverData = e.target.result;
+  items.push({name,price,cover:coverData,audio:audioData});
+  saveLS();
+  renderCatalog();
+  renderAdminItems();
 
-    readerAudio.onload = ev => {
-      const audioData = ev.target.result;
+  document.getElementById('upName').value='';
+  document.getElementById('upPrice').value='';
+  document.getElementById('upCover').value='';
+  document.getElementById('upAudio').value='';
 
-      items.push({ name, price, cover: coverData, audio: audioData });
-      saveLS();
-      renderCatalog();
-      renderAdminItems();
-
-      document.getElementById('upName').value = '';
-      document.getElementById('upPrice').value = '';
-      document.getElementById('upCover').value = '';
-      document.getElementById('upAudio').value = '';
-
-      alert('Playback cadastrado com sucesso!');
-    };
-
-    readerAudio.readAsDataURL(audioFile);
-  };
-
-  readerCover.readAsDataURL(coverFile);
+  alert('Playback cadastrado com sucesso!');
 });
+
+// Função auxiliar para converter arquivo em base64
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=error=>reject(error);
+    reader.readAsDataURL(file);
+  });
+}
 
 // ADMIN ITEMS RENDER E REMOVER
 function renderAdminItems(){
@@ -308,7 +303,7 @@ function renderOrders(){
   const el=document.getElementById('ordersList');
   el.innerHTML='';
   orders.forEach((o,idx)=>{
-    const status = o.paid ? 'Pago ✅' : 'Pendente';
+    const status=o.paid?'Pago ✅':'Pendente';
     const div=document.createElement('div');
     div.innerHTML=`Pedido ${idx+1} - Usuário: ${o.user||'Desconhecido'} - ${o.items.map(i=>i.name).join(', ')} - ${status} 
     <button onclick="toggleOrder(${idx})" class="btn-dark">${o.paid?'Bloquear':'Liberar'}</button>`;
@@ -319,11 +314,11 @@ function toggleOrder(idx){
   orders[idx].paid=!orders[idx].paid;
   if(orders[idx].paid){
     orders[idx].items.forEach(item=>{
-      downloads.push({...item, user:orders[idx].user});
+      downloads.push({...item,user:orders[idx].user});
     });
   } else {
     orders[idx].items.forEach(i=>{
-      downloads = downloads.filter(d=>!(d.name===i.name && d.user===orders[idx].user));
+      downloads=downloads.filter(d=>!(d.name===i.name&&d.user===orders[idx].user));
     });
   }
   saveLS();
@@ -337,12 +332,12 @@ document.getElementById('btnDoLogin').addEventListener('click',()=>{
   if(!u||!p){ alert("Preencha todos os campos!"); return; }
   user={username:u};
   currentUser=u;
-  localStorage.setItem('currentUser', u);
+  localStorage.setItem('currentUser',u);
   saveLS();
   document.getElementById('loginSection').style.display='none';
   document.getElementById('userProfile').style.display='flex';
   document.getElementById('currentUserName').innerText=u;
-  alert("Login efetuado e perfil criado!");
+  alert("Login efetuado!");
 });
 
 document.getElementById('btnLogout').addEventListener('click',()=>{
