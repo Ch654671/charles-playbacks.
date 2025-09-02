@@ -232,20 +232,36 @@ document.getElementById('btnLoginAdmin').addEventListener('click',()=>{
   else{alert('Senha incorreta!');}
 });
 
-// ADMIN UPLOAD
+// ADMIN UPLOAD (corrigido + muda para Playbacks ao cadastrar)
 document.getElementById('btnCreateItem').addEventListener('click',()=>{
   const name=document.getElementById('upName').value;
   const price=parseFloat(document.getElementById('upPrice').value);
   const coverFile=document.getElementById('upCover').files[0];
   const audioFile=document.getElementById('upAudio').files[0];
   if(!name||!price||!coverFile||!audioFile){alert('Preencha todos os campos!'); return;}
+
   const readerCover=new FileReader();
-  const readerAudio=new FileReader();
   readerCover.onload=e=>{
+    const coverData=e.target.result;
+    const readerAudio=new FileReader();
     readerAudio.onload=ev=>{
-      items.push({name,price,cover:e.target.result,audio:ev.target.result});
-      saveLS(); renderCatalog(); alert('Playback cadastrado!'); 
-      document.getElementById('upName').value=''; document.getElementById('upPrice').value=''; document.getElementById('upCover').value=''; document.getElementById('upAudio').value='';
+      const audioData=ev.target.result;
+      items.push({name,price,cover:coverData,audio:audioData});
+      saveLS();
+      renderCatalog();
+      alert('Playback cadastrado!');
+      document.getElementById('upName').value='';
+      document.getElementById('upPrice').value='';
+      document.getElementById('upCover').value='';
+      document.getElementById('upAudio').value='';
+
+      // **Aqui:** ao cadastrar, ir direto para a aba Playbacks
+      views.forEach(v=>v.classList.add('hidden'));
+      const playSection = document.getElementById('playbacks');
+      if(playSection) playSection.classList.remove('hidden');
+      document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+      const playBtn = document.querySelector('.nav-btn[data-view="playbacks"]');
+      if(playBtn) playBtn.classList.add('active');
     };
     readerAudio.readAsDataURL(audioFile);
   };
